@@ -1,0 +1,18 @@
+FROM php:7.4-fpm-alpine
+
+# Arguments defined in docker-compose.yml
+ARG username
+ARG userid
+
+# Create an app user and add to root group
+RUN addgroup -g $userid $username && adduser -u $userid -S $username -G $username
+RUN addgroup $username root
+
+# Add permission to access files
+RUN chown -R www-data:www-data /var/www/html
+
+# Get latest Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+RUN mkdir -p /home/$username/.composer && chown -R $username:$username /home/$username
+
+RUN docker-php-ext-install pdo pdo_mysql

@@ -1,0 +1,58 @@
+version: '3.7'
+
+networks:
+  ss_network:
+
+volumes:
+  dbdata:
+
+services:
+  db:
+    image: mysql:8.0.24
+    container_name: ss_mysql
+    restart: unless-stopped
+    tty: true
+    ports:
+      - ${DB_EXPOSED_PORT}:3306
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWD} 
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - dbdata:/var/lib/mysql
+    networks:
+      - ss_network
+
+  php:
+    build:
+      args:
+        username: ${USERNAME}
+        userid: ${USER_ID}
+      context: ./dockerfiles
+      dockerfile: php
+    container_name: ss_php
+    working_dir: /var/www/html
+    ports:
+      - 9000:9000
+    volumes:
+      - ./src:/var/www/html
+    user: ${USERNAME}
+    networks:
+      - ss_network
+
+  nginx:
+    image: nginx:stable-alpine
+    container_name: ss_nginx
+    ports:
+      - 8080:80
+    volumes:
+      - ./src:/var/www/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - db
+      - php
+    networks:
+      - ss_network
